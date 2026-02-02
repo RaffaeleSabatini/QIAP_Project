@@ -70,3 +70,6 @@ def solve_JC_LME_parallelized(initial_state, delta_c, delta_a, g_til_L, E_L, KAP
         delayed(solve_JC_LME)(initial_state, delta_c, delta_a, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt, False) for g_til, E, KAPPA, GAMMA in combinations
     )
     return {params: resul for params, resul in zip(combinations, results)}
+
+
+
