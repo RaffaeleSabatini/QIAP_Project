@@ -1,19 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import qutip as qtp
 
-def plot_occupations(results, selected_idx):
+def plot_occupations(results, selected_idx, param_list):
     '''
         Plots the occupations of different Fock states (i.e. the probabilities of having K photons in the 
         cavity for K = 0,...,N_ph) with different configurations of parameters.
 
     '''
-    param_list = [
-        r"Coupling $\tilde{g}$",
-        r"Driving field $\mathcal{E}$",
-        r"Cavity decay rate $\kappa$",
-        r"Atom decay rate $\Gamma$"
-    ]
     parameters = list(results.keys())
     densities  = list(results.values())
 
@@ -40,7 +35,7 @@ def plot_occupations(results, selected_idx):
 
 
 
-def plot_two_photons_corr(results, omega_res, g_til): 
+def plot_two_photons_corr(results, omega_res, g_til, GAMMA, KAPPA, E): 
     omega_L = np.array(list(results.keys()))
     N       = omega_L.shape[0]
 
@@ -54,12 +49,23 @@ def plot_two_photons_corr(results, omega_res, g_til):
     # Plot
     normalized_omega = (omega_L-omega_res)/g_til
 
-    fig, axes = plt.subplots(dpi=200, figsize=(12, 7))
+    legend = [
+        Line2D([0], [0], color="none", label=rf"$\tilde g=${g_til}"),
+        Line2D([0], [0], color="none", label=rf"$\Gamma=${GAMMA}"),
+        Line2D([0], [0], color="none", label=rf"$\kappa=${KAPPA}"),
+        Line2D([0], [0], color="none", label=rf"$\mathcal{{E}}=${E}")
+    ]
+
+    fig, axes = plt.subplots(dpi=200, figsize=(9, 6))
     axes.plot(normalized_omega, two_photons_corr, "o-")
     axes.hlines(0, np.min(normalized_omega), np.max(normalized_omega), "red", "--")
     axes.set_xlabel(r"Relative drive frequency, $(\omega - \omega_{0})/\tilde{g}$")
+    axes.set_xticks(normalized_omega)
     axes.set_ylabel(r"Two-photons correlation function, $g^{(2)}$")
+    
     axes.grid("lightgrey")
+    axes.set_title("Two-photons correlation at steady state around resonance")
+    axes.legend(handles=legend, title="Parameters")
 
     plt.show()
 

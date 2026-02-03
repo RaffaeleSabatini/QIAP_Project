@@ -60,23 +60,41 @@ def solve_JC_LME(initial_state, delta_c, delta_a, g_til, E, KAPPA, GAMMA, N_ph, 
     return result
 
 
-def solve_JC_LME_parallelized(initial_state, delta_c, delta_a, g_til_L, E_L, KAPPA_L, GAMMA_L, N_ph, t_in, t_fin, nt):
+
+def solve_JC_LME_parallelized(initial_state, delta_c, delta_a, g_til, E_L, KAPPA_L, GAMMA_L, N_ph, t_in, t_fin, nt):
     '''
         Performs solve_JC_LME in a parallelized way over a (cartesian product of) list(s) of parameters.
     '''
     
-    combinations = list(product(g_til_L, E_L, KAPPA_L, GAMMA_L))
+    combinations = list(product(E_L, KAPPA_L, GAMMA_L))
     results = Parallel(n_jobs=4) (
-        delayed(solve_JC_LME)(initial_state, delta_c, delta_a, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt, False) for g_til, E, KAPPA, GAMMA in combinations
+        delayed(solve_JC_LME)(initial_state, delta_c, delta_a, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt, False) for E, KAPPA, GAMMA in combinations
     )
     return {params: resul for params, resul in zip(combinations, results)}
+
+
+
+
+def solve_JC_LME_resonance(initial_state, omega_c, omega_a, g_til_L, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt):
+    '''
+        Performs solve_JC_LME upon varying the coupling constant g. 
+
+        The difference with "solve_JC_LME_scan_omega" is that here both g and omega are recomputed
+        to preserve resonance condition.
+    '''
+    omega_L = [omega_c - g_til for g_til in g_til_L]
+    results = Parallel(n_jobs=4) (
+        delayed(solve_JC_LME)(initial_state, omega_c-omega, omega_a-omega, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt, False) for (omega, g_til) in zip(omega_L, g_til_L)
+    )
+    return {params: results for params, results in zip(zip(omega_L, g_til_L), results)}
+
+
 
 
 def solve_JC_LME_scan_omega(initial_state, omega_L, omega_c, omega_a, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt):
     '''
         Performs solve_JC_LME over a list of different values drive frequencies.
     '''
-
     results = Parallel(n_jobs=4) (
         delayed(solve_JC_LME)(initial_state, omega_c-omega, omega_a-omega, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt, False) for omega in omega_L
     )
