@@ -40,9 +40,27 @@ def plot_occupations(results, selected_idx):
 
 
 
-def plot_two_photons_corr(result): 
-    rho_ss = result.final_state.ptrace(1)
-    N = rho_ss.shape[0]
+def plot_two_photons_corr(results, omega_res, g_til): 
+    omega_L = np.array(list(results.keys()))
+    N       = omega_L.shape[0]
 
-    a = qtp.destruction()
+    two_photons_corr = np.zeros(N)
+    for k, res in enumerate(results.values()):
+        rho_ss = res.final_state.ptrace(1)
+        N = rho_ss.shape[0]
+        a = qtp.destroy(N)
+        two_photons_corr[k] = qtp.expect(a.dag()*a.dag()*a*a, rho_ss) / (qtp.expect(a.dag()*a, rho_ss))**2
+
+    # Plot
+    normalized_omega = (omega_L-omega_res)/g_til
+
+    fig, axes = plt.subplots(dpi=200, figsize=(12, 7))
+    axes.plot(normalized_omega, two_photons_corr, "o-")
+    axes.hlines(0, np.min(normalized_omega), np.max(normalized_omega), "red", "--")
+    axes.set_xlabel(r"Relative drive frequency, $(\omega - \omega_{0})/\tilde{g}$")
+    axes.set_ylabel(r"Two-photons correlation function, $g^{(2)}$")
+    axes.grid("lightgrey")
+
+    plt.show()
+
 

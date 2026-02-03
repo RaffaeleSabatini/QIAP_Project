@@ -9,7 +9,7 @@ from itertools import product
 def solve_JC_LME(initial_state, delta_c, delta_a, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt, show_N_avg=True):
     '''
         Computes the evolution in time of the density matrix by using a LME with:
-        - James-Cumming Hamiltonian in the drive frame
+        - James-Cummings Hamiltonian in the drive frame
         - destruction operator "a" and sigma-minus as Lindblad operators 
         - KAPPA and GAMMA as respectively the (squared) decay rates.
 
@@ -72,4 +72,12 @@ def solve_JC_LME_parallelized(initial_state, delta_c, delta_a, g_til_L, E_L, KAP
     return {params: resul for params, resul in zip(combinations, results)}
 
 
+def solve_JC_LME_scan_omega(initial_state, omega_L, omega_c, omega_a, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt):
+    '''
+        Performs solve_JC_LME over a list of different values drive frequencies.
+    '''
 
+    results = Parallel(n_jobs=4) (
+        delayed(solve_JC_LME)(initial_state, omega_c-omega, omega_a-omega, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt, False) for omega in omega_L
+    )
+    return {omega: result for omega, result in zip(omega_L, results)}
