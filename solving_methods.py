@@ -6,7 +6,7 @@ from scipy.special import factorial
 from joblib import Parallel, delayed
 from itertools import product
 
-def solve_JC_LME(initial_state, delta_c, delta_a, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt, show_N_avg=True):
+def solve_JC_LME(initial_state, delta_c, delta_a, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt):
     '''
         Computes the evolution in time of the density matrix by using a LME with:
         - James-Cummings Hamiltonian in the drive frame
@@ -48,15 +48,6 @@ def solve_JC_LME(initial_state, delta_c, delta_a, g_til, E, KAPPA, GAMMA, N_ph, 
     times = np.linspace(t_in, t_fin, nt)
     result = qtp.mesolve(H, initial_state, times, c_ops, e_ops=[a.dag()*a], options={'store_final_state':True})
 
-    # Plotting results
-    if show_N_avg:
-        plt.figure(figsize=(12, 7),dpi=200)
-        plt.plot(times, result.expect[0], label=r"$\langle \hat{a}^\dag \hat{a}\rangle$")
-        plt.xlabel('Time t [sec]')
-        plt.ylabel('Expectation value')
-        plt.legend()
-        plt.show()
-    
     return result
 
 
@@ -68,10 +59,9 @@ def solve_JC_LME_parallelized(initial_state, delta_c, delta_a, g_til, E_L, KAPPA
     
     combinations = list(product(E_L, KAPPA_L, GAMMA_L))
     results = Parallel(n_jobs=4) (
-        delayed(solve_JC_LME)(initial_state, delta_c, delta_a, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt, False) for E, KAPPA, GAMMA in combinations
+        delayed(solve_JC_LME)(initial_state, delta_c, delta_a, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt) for E, KAPPA, GAMMA in combinations
     )
     return {params: resul for params, resul in zip(combinations, results)}
-
 
 
 
@@ -84,7 +74,7 @@ def solve_JC_LME_resonance(initial_state, omega_c, omega_a, g_til_L, E, KAPPA, G
     '''
     omega_L = [omega_c - g_til for g_til in g_til_L]
     results = Parallel(n_jobs=4) (
-        delayed(solve_JC_LME)(initial_state, omega_c-omega, omega_a-omega, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt, False) for (omega, g_til) in zip(omega_L, g_til_L)
+        delayed(solve_JC_LME)(initial_state, omega_c-omega, omega_a-omega, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt) for (omega, g_til) in zip(omega_L, g_til_L)
     )
     return {params: results for params, results in zip(zip(omega_L, g_til_L), results)}
 
@@ -96,6 +86,6 @@ def solve_JC_LME_scan_omega(initial_state, omega_L, omega_c, omega_a, g_til, E, 
         Performs solve_JC_LME over a list of different values drive frequencies.
     '''
     results = Parallel(n_jobs=4) (
-        delayed(solve_JC_LME)(initial_state, omega_c-omega, omega_a-omega, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt, False) for omega in omega_L
+        delayed(solve_JC_LME)(initial_state, omega_c-omega, omega_a-omega, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt) for omega in omega_L
     )
     return {omega: result for omega, result in zip(omega_L, results)}
