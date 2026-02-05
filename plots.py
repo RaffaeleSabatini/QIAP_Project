@@ -7,8 +7,9 @@ from scipy.special import factorial
 plt.rcParams['axes.titlesize'] = 16     
 plt.rcParams['axes.labelsize'] = 14     
 plt.rcParams['xtick.labelsize'] = 12    
-plt.rcParams['ytick.labelsize'] = 12    
-plt.rcParams['legend.fontsize'] = 12    
+plt.rcParams['ytick.labelsize'] = 12 
+plt.rcParams['legend.title_fontsize'] = 16   
+plt.rcParams['legend.fontsize'] = 14    
 plt.rcParams['figure.titlesize'] = 18   
 
 def plot_mean_values(results, t_in, t_fin, nt, Gamma, title):
@@ -16,24 +17,28 @@ def plot_mean_values(results, t_in, t_fin, nt, Gamma, title):
     fig, axes = plt.subplots(dpi=200, figsize=(9,7))
     cmap = plt.get_cmap("viridis")
 
+    y_max = 0; temp = 0
     for k, (par, result) in enumerate(results.items()):
         color = cmap((k+0.5)/len(results))
         mean_N = result.expect[0]
         axes.plot(times, mean_N, label=par[0]/Gamma, color=color)
         axes.hlines(mean_N[-1], t_in, t_fin, linestyles="--", color=color)
+
+        temp = np.max(mean_N)
+        if temp > y_max: y_max = temp
     
     axes.grid("lightgrey")
     axes.set_xlabel('Time, t [sec]')
     axes.set_ylabel(r'Average photons number, $\langle \hat{a}^\dag \hat{a}\rangle$')
-    axes.set_yticks(np.arange(10))
-    axes.legend(title=rf"$\mathcal{{E}}/\Gamma$ = ", loc="center right", bbox_to_anchor=(0.98, 0.6))
+    #axes.set_yticks(np.arange(int(y_max)))
+    axes.legend(title=rf"$\mathcal{{E}}/\kappa$ = ", loc="center right", bbox_to_anchor=(0.98, 0.6))
     axes.set_title(title, weight="bold")
         
     plt.show()
 
 
 
-def plot_occupations(results, selected_idx, param_list, with_poissonian_hist=False, prefix_title=""):
+def plot_occupations(results, selected_idx, param_list, with_poissonian_hist=False, prefix_title="", full_title=""):
     '''
         Plots the occupations of different Fock states (i.e. the probabilities of having K photons in the 
         cavity for K = 0,...,N_ph) with different configurations of parameters.
@@ -79,14 +84,33 @@ def plot_occupations(results, selected_idx, param_list, with_poissonian_hist=Fal
         axes.legend(handles=hist_handles, title='Coherent (Poissonian) distribution with', loc="center right")
 
     title = [param_list[i] + "=" + str(parameters[0][i]) for i in range(len(param_list)) if i != selected_idx]
-    axes.set_title(prefix_title + " - ".join(title), weight="bold")
+    if full_title == "":
+        axes.set_title(prefix_title + " - ".join(title), weight="bold")
+    else:
+        axes.set_title(full_title, weight="bold")
 
     #plt.tight_layout()
     plt.show()
 
 
+def plot_heatmap_occupations(results, n_states, GAMMA_L, KAPPA_L):
+    shape = (len(GAMMA_L), len(KAPPA_L))
+    fig, axes = plt.subplots(ncols=n_states+1, dpi=200, figsize=(9,7))
 
-def plot_two_photons_corr(results, omega_res, g_til, GAMMA, KAPPA, E): 
+    for state_idx in range(n_states+1):
+        i_th_occupations = np.array([res.final_state.ptrace(1).diag()[state_idx] for res in results])
+        i_th_occupations = i_th_occupations.reshape(shape)
+
+        axes[state_idx].imshow(i_th_occupations)
+        axes[state_idx].set_title(fr"Fock state $\vert {state_idx} \rangle$")
+    fig.suptitle("Occupation distribution")
+
+    fig.tight_layout()
+    plt.show()
+
+
+
+def plot_two_photons_corr(results, omega_c, g_til, GAMMA, KAPPA, E): 
     omega_L = np.array(list(results.keys()))
     N       = omega_L.shape[0]
 
@@ -98,7 +122,7 @@ def plot_two_photons_corr(results, omega_res, g_til, GAMMA, KAPPA, E):
         two_photons_corr[k] = qtp.expect(a.dag()*a.dag()*a*a, rho_ss) / (qtp.expect(a.dag()*a, rho_ss))**2
 
     # Plot
-    normalized_omega = (omega_L-omega_res)/g_til
+    normalized_omega = (omega_L-omega_c)/g_til
 
     legend = [
         Line2D([0], [0], color="none", label=rf"$\tilde g=${g_til}"),
@@ -108,16 +132,21 @@ def plot_two_photons_corr(results, omega_res, g_til, GAMMA, KAPPA, E):
     ]
 
     fig, axes = plt.subplots(dpi=200, figsize=(9, 7))
-    axes.plot(normalized_omega, two_photons_corr, "o-")
-    axes.hlines(0, np.min(normalized_omega), np.max(normalized_omega), "red", "--")
-    axes.set_xlabel(r"Relative drive frequency, $(\omega - \omega_{0})/\tilde{g}$")
-    axes.set_xticks(normalized_omega)
+    mask = two_photons_corr > 10**-2
+    axes.plot(normalized_omega[mask], two_photons_corr[mask], "o-")
+    axes.set_xlabel(r"Relative drive frequency, $(\omega - \omega_{c})/\tilde{g}$")
     axes.set_ylabel(r"Two-photons correlation function, $g^{(2)}$")
+    res_lines = axes.vlines([-1, 1], np.min(two_photons_corr[mask]), np.max(two_photons_corr[mask]), color="red", linestyles="--", label="resonances")
+    min_line  = axes.hlines(np.min(two_photons_corr[mask]), np.min(normalized_omega), np.max(normalized_omega), color="navy", ls="--", label=fr"$g^{{(2)}}={np.min(two_photons_corr[mask]):.3f}$")
+    axes.set_yscale("log")
     
     axes.grid("lightgrey")
     axes.set_title("Two-photons correlation at steady state around resonance", weight="bold")
-    axes.legend(handles=legend, title="Parameters")
+    leg1 = axes.legend(handles=legend, title="Parameters", handlelength=0)
+    axes.add_artist(leg1)
 
+    axes.legend(handles=[res_lines, min_line], loc="upper left")
     plt.show()
+
 
 

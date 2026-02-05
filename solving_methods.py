@@ -52,7 +52,7 @@ def solve_JC_LME(initial_state, delta_c, delta_a, g_til, E, KAPPA, GAMMA, N_ph, 
 
 
 
-def solve_JC_LME_parallelized(initial_state, delta_c, delta_a, g_til, E_L, KAPPA_L, GAMMA_L, N_ph, t_in, t_fin, nt):
+def solve_JC_LME_parallelized(initial_state, delta_c, delta_a, g_til, E_L, KAPPA_L, GAMMA_L, N_ph, t_in, t_fin, nt, return_type="dict"):
     '''
         Performs solve_JC_LME in a parallelized way over a (cartesian product of) list(s) of parameters.
     '''
@@ -61,8 +61,14 @@ def solve_JC_LME_parallelized(initial_state, delta_c, delta_a, g_til, E_L, KAPPA
     results = Parallel(n_jobs=4) (
         delayed(solve_JC_LME)(initial_state, delta_c, delta_a, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt) for E, KAPPA, GAMMA in combinations
     )
-    return {params: resul for params, resul in zip(combinations, results)}
-
+    if return_type == "dict":
+        return {params: resul for params, resul in zip(combinations, results)}
+    
+    elif return_type == "arr":
+        return np.array(results)
+    
+    else:
+        print("Error: return_type must be 'dict' or 'arr'!")
 
 
 def solve_JC_LME_resonance(initial_state, omega_c, omega_a, g_til_L, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt):
@@ -85,7 +91,7 @@ def solve_JC_LME_scan_omega(initial_state, omega_L, omega_c, omega_a, g_til, E, 
     '''
         Performs solve_JC_LME over a list of different values drive frequencies.
     '''
-    results = Parallel(n_jobs=4) (
+    results = Parallel(n_jobs=6) (
         delayed(solve_JC_LME)(initial_state, omega_c-omega, omega_a-omega, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt) for omega in omega_L
     )
     return {omega: result for omega, result in zip(omega_L, results)}
