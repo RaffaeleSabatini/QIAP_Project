@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib import colors, cm
+import matplotlib.ticker as ticker
 import qutip as qtp
 from scipy.special import factorial
 
@@ -93,19 +95,37 @@ def plot_occupations(results, selected_idx, param_list, with_poissonian_hist=Fal
     plt.show()
 
 
-def plot_heatmap_occupations(results, n_states, GAMMA_L, KAPPA_L):
+def plot_heatmap_occupations(results, n_states, GAMMA_L, KAPPA_L, title="", step=1):
     shape = (len(GAMMA_L), len(KAPPA_L))
-    fig, axes = plt.subplots(ncols=n_states+1, dpi=200, figsize=(9,7))
+    fig, axes = plt.subplots(ncols=n_states+1, dpi=200, figsize=(9,7), constrained_layout = True)
+
+    cmap = plt.get_cmap("viridis")
+    Normalizer = colors.Normalize(vmin=0, vmax=1)
+    im = cm.ScalarMappable(norm = Normalizer, cmap=cmap)
 
     for state_idx in range(n_states+1):
         i_th_occupations = np.array([res.final_state.ptrace(1).diag()[state_idx] for res in results])
         i_th_occupations = i_th_occupations.reshape(shape)
 
-        axes[state_idx].imshow(i_th_occupations)
+        axes[state_idx].imshow(
+            i_th_occupations,
+            cmap=cmap,
+            origin="lower",
+            norm=Normalizer,
+            aspect="auto"
+            )
+        
         axes[state_idx].set_title(fr"Fock state $\vert {state_idx} \rangle$")
-    fig.suptitle("Occupation distribution")
+        axes[state_idx].set_xlabel(r"Atomic decay rate, $\Gamma$")
+        axes[state_idx].set_ylabel(r"Cavity decay rate, $\kappa$")
+        axes[state_idx].set_xticks(np.arange(len(GAMMA_L), step=step), [f"{x:.1e}" for x in np.round(GAMMA_L, 4)[::step]], rotation=45)
+        axes[state_idx].set_yticks(np.arange(len(KAPPA_L), step=step), [f"{x:.1e}" for x in np.round(KAPPA_L, 4)[::step]])
 
-    fig.tight_layout()
+    fig.suptitle("Occupation distribution" if not title else title, weight="bold")
+    cb = fig.colorbar(im, ax=axes, orientation="horizontal", cmap=cmap)
+    cb.set_label("Occupation")
+    #fig.tight_layout()
+
     plt.show()
 
 

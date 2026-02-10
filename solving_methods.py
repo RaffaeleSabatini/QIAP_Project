@@ -58,7 +58,7 @@ def solve_JC_LME_parallelized(initial_state, delta_c, delta_a, g_til, E_L, KAPPA
     '''
     
     combinations = list(product(E_L, KAPPA_L, GAMMA_L))
-    results = Parallel(n_jobs=4) (
+    results = Parallel(n_jobs=6) (
         delayed(solve_JC_LME)(initial_state, delta_c, delta_a, g_til, E, KAPPA, GAMMA, N_ph, t_in, t_fin, nt) for E, KAPPA, GAMMA in combinations
     )
     if return_type == "dict":
